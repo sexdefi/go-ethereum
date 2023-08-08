@@ -70,7 +70,7 @@ var (
 
 	FrontierBlockReward       = big.NewInt(3e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward      = big.NewInt(2e+18) // Block reward in wei for successfully mining a block upward from Byzantium
-	ConstantinopleBlockReward = big.NewInt(2e+16) // Block reward in wei for successfully mining a block upward from Constantinople
+	ConstantinopleBlockReward = big.NewInt(2e+14) // Block reward in wei for successfully mining a block upward from Constantinople
 
 )
 
