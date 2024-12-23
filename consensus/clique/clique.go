@@ -580,7 +580,7 @@ func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Heade
 		} else if bytes.Equal(signature, empty) {
 			//making block
 			signer := c.signer
-			accumulateRewards(chain.Config(), state, header, uncles, signer)
+			accumulateRewards(chain.Config(), state, header, uncles, signer, txs)
 		} else {
 			// Retrieve the snapshot needed to verify this header and cache it
 			snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
@@ -589,13 +589,13 @@ func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Heade
 				signer, err := ecrecover(header, snap.sigcache)
 				if err != nil {
 				} else {
-					accumulateRewards(chain.Config(), state, header, uncles, signer)
+					accumulateRewards(chain.Config(), state, header, uncles, signer, txs)
 				}
 			}
 
 		}
 	}
-	
+
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 }
@@ -778,17 +778,31 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	}
 }
 
-func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header, signer common.Address) {
+func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header, signer common.Address, txs []*types.Transaction) {
 
-	// Select the correct block reward based on chain progression
-	blockReward := FrontierBlockReward
-	if config.IsByzantium(header.Number) {
-		blockReward = ByzantiumBlockReward
+	// // Select the correct block reward based on chain progression
+	// blockReward := FrontierBlockReward
+	// if config.IsByzantium(header.Number) {
+	// 	blockReward = ByzantiumBlockReward
+	// }
+	// if config.IsConstantinople(header.Number) {
+	// 	blockReward = ConstantinopleBlockReward
+	// }
+	// // Accumulate the rewards for the miner and any included uncles
+	// //reward := new(big.Int).Set(blockReward)
+
+	// 基础区块奖励
+	blockReward := config.Clique.BlockReward
+	if blockReward == nil {
+		blockReward, _ = new(big.Int).SetString("2000000000000000000", 10) // 2个eth
 	}
-	if config.IsConstantinople(header.Number) {
-		blockReward = ConstantinopleBlockReward
-	}
-	// Accumulate the rewards for the miner and any included uncles
+
+	// 计算总奖励（基础奖励 + 交易费）
 	reward := new(big.Int).Set(blockReward)
+	for _, tx := range txs {
+		fee := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
+		reward.Add(reward, fee)
+	}
+
 	state.AddBalance(signer, reward)
 }
