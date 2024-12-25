@@ -779,18 +779,6 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 }
 
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header, signer common.Address, txs []*types.Transaction) {
-
-	// // Select the correct block reward based on chain progression
-	// blockReward := FrontierBlockReward
-	// if config.IsByzantium(header.Number) {
-	// 	blockReward = ByzantiumBlockReward
-	// }
-	// if config.IsConstantinople(header.Number) {
-	// 	blockReward = ConstantinopleBlockReward
-	// }
-	// // Accumulate the rewards for the miner and any included uncles
-	// //reward := new(big.Int).Set(blockReward)
-
 	// 基础区块奖励
 	blockReward := config.Clique.BlockReward
 	if blockReward == nil {
@@ -804,5 +792,11 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		reward.Add(reward, fee)
 	}
 
-	state.AddBalance(signer, reward)
+	// 如果配置了奖励地址，则将奖励发送到该地址，否则发送给出块者
+	rewardAddress := config.Clique.RewardAddress
+	if rewardAddress != nil {
+		state.AddBalance(*rewardAddress, reward)
+	} else {
+		state.AddBalance(signer, reward)
+	}
 }
