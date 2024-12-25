@@ -779,14 +779,21 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 }
 
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header, signer common.Address, txs []*types.Transaction) {
+
 	// 基础区块奖励
 	blockReward := config.Clique.BlockReward
 	if blockReward == nil {
 		blockReward, _ = new(big.Int).SetString("2000000000000000000", 10) // 2个eth
 	}
 
+	// 检查是否超过最大奖励区块号
+	if config.Clique.MaxRewardBlock > 0 && header.Number.Uint64() > config.Clique.MaxRewardBlock {
+		blockReward = big.NewInt(0)
+	}
+
+	reward := blockReward
+
 	// 计算总奖励（基础奖励 + 交易费）
-	reward := new(big.Int).Set(blockReward)
 	for _, tx := range txs {
 		fee := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
 		reward.Add(reward, fee)
